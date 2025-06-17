@@ -89,15 +89,29 @@
         const now = Date.now();
         if (now - lastClickTime < 3000) return;
         
-        // Find elements with rate limit text
-        const elements = document.querySelectorAll('body *');
-        for (const el of elements) {
+        // Use XPath to efficiently find elements containing rate limit text within the composer bar
+        const xpathResult = document.evaluate(
+            "//div[contains(@class, 'composer-bar')]//text()[contains(., 'stop the agent after') or contains(., 'Note: we default stop')]",
+            document,
+            null,
+            XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+            null
+        );
+        
+        for (let i = 0; i < xpathResult.snapshotLength; i++) {
+            const textNode = xpathResult.snapshotItem(i);
+            const el = textNode.parentElement;
+
             if (!el || !el.textContent) continue;
             
-            // Check if element contains rate limit text
-            if (el.textContent.includes('stop the agent after 25 tool calls') || 
-                el.textContent.includes('Note: we default stop')) {
-                
+            // Double-check with regex for "stop the agent after X tool calls" pattern
+            const text = el.textContent;
+            const hasRateLimitText = (
+                /stop the agent after \d+ tool calls/i.test(text) ||
+                text.includes('Note: we default stop')
+            );
+            
+            if (hasRateLimitText) {
                 // Find the resume link inside this element
                 const links = el.querySelectorAll('a, span.markdown-link, [role="link"], [data-link]');
                 for (const link of links) {
@@ -168,10 +182,7 @@
         setupDOMObserver();
         
         // Run resume checking periodically
-        setInterval(clickResumeLink, 1000);
-        
-        // Also run once immediately
-        clickResumeLink();
+        setInterval(clickResumeLink, 2000);
     }
     
     // Start the script
