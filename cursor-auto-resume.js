@@ -124,6 +124,25 @@
                 }
             }
         }
+        
+        // Handle connection error and click "Resume"
+        const chatWindow = document.querySelector("div[class*='composer-bar']")?.closest("div[class*='full-input-box']");
+        if (!chatWindow) return;
+
+        const errorText = "We're having trouble connecting to the model provider";
+        const errorXpath = `.//section[contains(@data-markdown-raw, "${errorText}")] | .//div[contains(text(), "${errorText}")] | .//span[contains(text(), "${errorText}")]`;
+        const errorElementResult = document.evaluate(errorXpath, chatWindow, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
+        if (!errorElementResult) return;
+
+        const resumeButtonXpath = `(.//div[contains(@class, 'anysphere-secondary-button')]//span[text()='Resume']//.. | .//button[contains(., 'Resume')])[last()]`;
+        const resumeButton = document.evaluate(resumeButtonXpath, chatWindow, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
+
+        if (resumeButton) {
+            console.log('Clicking "Resume" button for connection error');
+            resumeButton.click();
+            lastClickTime = now;
+            return;
+        }
     }
     
     // Monitor for DOM changes to reinject button when needed
