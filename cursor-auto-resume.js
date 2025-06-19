@@ -139,11 +139,16 @@
                 errorText: "We're experiencing high demand for",
                 buttonText: 'Try again',
                 logMessage: 'Clicking "Try again" button for high demand error.'
+            },
+            {
+                errorText: "Connection failed. If the problem persists, please check your internet connection",
+                buttonText: 'Try again',
+                logMessage: 'Clicking "Try again" button for connection failed error.'
             }
         ];
 
         for (const scenario of errorScenarios) {
-            const errorXpath = `.//section[contains(@data-markdown-raw, "${scenario.errorText}")] | .//div[contains(text(), "${scenario.errorText}")] | .//span[contains(text(), "${scenario.errorText}")]`;
+            const errorXpath = `.//section[contains(@data-markdown-raw, "${scenario.errorText}")] | .//div[contains(., "${scenario.errorText}")] | .//span[contains(., "${scenario.errorText}")]`;
             const errorElementResult = document.evaluate(errorXpath, chatWindow, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
             
             if (errorElementResult) {
