@@ -89,8 +89,8 @@
         const now = Date.now();
         if (now - lastClickTime < 3000) return;
         
-        // Use XPath to efficiently find elements containing rate limit text within the composer bar
-        const xpathResult = document.evaluate(
+        // --- Scenario 1: "stop the agent after..." ---
+        const toolLimitXpath = document.evaluate(
             "//div[contains(@class, 'composer-bar')]//text()[contains(., 'stop the agent after') or contains(., 'Note: we default stop')]",
             document,
             null,
@@ -98,8 +98,8 @@
             null
         );
         
-        for (let i = 0; i < xpathResult.snapshotLength; i++) {
-            const textNode = xpathResult.snapshotItem(i);
+        for (let i = 0; i < toolLimitXpath.snapshotLength; i++) {
+            const textNode = toolLimitXpath.snapshotItem(i);
             const el = textNode.parentElement;
 
             if (!el || !el.textContent) continue;
@@ -119,29 +119,44 @@
                         console.log('Clicking "resume the conversation" link');
                         link.click();
                         lastClickTime = now;
-                        return;
+                        return; // Exit after successful click
                     }
                 }
             }
         }
         
-        // Handle connection error and click "Resume"
+        // --- Scenarios 2 & 3: Popup errors in chat window ---
         const chatWindow = document.querySelector("div[class*='composer-bar']")?.closest("div[class*='full-input-box']");
         if (!chatWindow) return;
 
-        const errorText = "We're having trouble connecting to the model provider";
-        const errorXpath = `.//section[contains(@data-markdown-raw, "${errorText}")] | .//div[contains(text(), "${errorText}")] | .//span[contains(text(), "${errorText}")]`;
-        const errorElementResult = document.evaluate(errorXpath, chatWindow, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
-        if (!errorElementResult) return;
+        const errorScenarios = [
+            {
+                errorText: "We're having trouble connecting to the model provider",
+                buttonText: 'Resume',
+                logMessage: 'Clicking "Resume" button for connection error.'
+            },
+            {
+                errorText: "We're experiencing high demand for",
+                buttonText: 'Try again',
+                logMessage: 'Clicking "Try again" button for high demand error.'
+            }
+        ];
 
-        const resumeButtonXpath = `(.//div[contains(@class, 'anysphere-secondary-button')]//span[text()='Resume']//.. | .//button[contains(., 'Resume')])[last()]`;
-        const resumeButton = document.evaluate(resumeButtonXpath, chatWindow, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
+        for (const scenario of errorScenarios) {
+            const errorXpath = `.//section[contains(@data-markdown-raw, "${scenario.errorText}")] | .//div[contains(text(), "${scenario.errorText}")] | .//span[contains(text(), "${scenario.errorText}")]`;
+            const errorElementResult = document.evaluate(errorXpath, chatWindow, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
+            
+            if (errorElementResult) {
+                const buttonXpath = `(.//div[contains(@class, 'anysphere-secondary-button')]//span[text()='${scenario.buttonText}']/.. | .//button[contains(., '${scenario.buttonText}')])[last()]`;
+                const button = document.evaluate(buttonXpath, chatWindow, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
 
-        if (resumeButton) {
-            console.log('Clicking "Resume" button for connection error');
-            resumeButton.click();
-            lastClickTime = now;
-            return;
+                if (button) {
+                    console.log(scenario.logMessage);
+                    button.click();
+                    lastClickTime = now;
+                    return; // Exit after successful click
+                }
+            }
         }
     }
     
