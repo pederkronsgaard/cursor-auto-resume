@@ -91,7 +91,7 @@
         
         // --- Scenario 1: "stop the agent after..." ---
         const toolLimitXpath = document.evaluate(
-            "//div[contains(@class, 'composer-bar')]//text()[contains(., 'stop the agent after') or contains(., 'Note: we default stop')]",
+            "//div[contains(@class, 'composer-bar')]//text()[contains(., 'stop the agent after')]",
             document,
             null,
             XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
@@ -102,18 +102,22 @@
             const textNode = toolLimitXpath.snapshotItem(i);
             const el = textNode.parentElement;
 
-            if (!el || !el.textContent) continue;
+            if (!el) continue;
             
+            // Search for link in the parent, as the text and link might be siblings.
+            const searchContainer = el.parentElement;
+            if (!searchContainer || !searchContainer.textContent) continue;
+
             // Double-check with regex for "stop the agent after X tool calls" pattern
-            const text = el.textContent;
+            const text = searchContainer.textContent;
             const hasRateLimitText = (
                 /stop the agent after \d+ tool calls/i.test(text) ||
-                text.includes('Note: we default stop')
+                text.includes('By default, we stop the agent after')
             );
             
             if (hasRateLimitText) {
-                // Find the resume link inside this element
-                const links = el.querySelectorAll('a, span.markdown-link, [role="link"], [data-link]');
+                // Find the resume link inside this element's parent
+                const links = searchContainer.querySelectorAll('a, span.markdown-link, [role="link"], [data-link]');
                 for (const link of links) {
                     if (link.textContent.trim() === 'resume the conversation') {
                         console.log('Clicking "resume the conversation" link');
